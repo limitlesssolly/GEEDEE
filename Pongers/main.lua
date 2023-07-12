@@ -8,6 +8,8 @@ VIRTUAL_HEIGHT = 243
 
 function love.load()      --bnoverride 3shan di el bt-initialize el game state lama bnbtdy fl awl khales
 
+    love.graphics.setDefaultFilter('nearest', 'nearest')
+
     push:setupScreen(VIRTUAL_WIDTH, VIRTUAL_HEIGHT, WINDOW_WIDTH, WINDOW_HEIGHT, {
         fullscreen = false,
         resizable = false,
