@@ -1,23 +1,35 @@
-WINDOW_WIDTH = 1220
-WINDOW_HEIGHT = 680
+push = require 'push'
+
+WINDOW_WIDTH = 1280
+WINDOW_HEIGHT = 700
+
+VIRTUAL_WIDTH = 432   --virtual res window
+VIRTUAL_HEIGHT = 243
 
 function love.load()      --bnoverride 3shan di el bt-initialize el game state lama bnbtdy fl awl khales
 
-    love.window.setMode(WINDOW_WIDTH, WINDOW_HEIGHT, {
+    push:setupScreen(VIRTUAL_WIDTH, VIRTUAL_HEIGHT, WINDOW_WIDTH, WINDOW_HEIGHT, {
         fullscreen = false,
-        resizable = true,
+        resizable = false,
         vsync = true
     })
 
 end
 
-function love.draw()  -- di el btndh kol frame b3d el update bta3 el haga
-    
-    love.graphics.print(
-    'Hello Pong',
-    0,                         -- el x coordinate bnbd2 mn zero
-    WINDOW_HEIGHT/ 2-6,        -- emfrud hna bn2ol en da halfwaydown el screen
-    WINDOW_WIDTH,              -- number of pixels to center within
-    'center')
+function love.keypressed(key)
+    if key == 'escape' then
+        love.event.quit()
+    end
+end
 
+function love.draw()
+    -- begin rendering at virtual resolution
+    push:apply('start')
+
+    -- condensed onto one line from last example
+    -- note we are now using virtual width and height now for text placement
+    love.graphics.printf('Hello Pongers!', 0, VIRTUAL_HEIGHT / 2 - 6, VIRTUAL_WIDTH, 'center')
+
+    -- end rendering at virtual resolution
+    push:apply('end')
 end
