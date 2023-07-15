@@ -62,7 +62,7 @@ function love.load()
     math.randomseed(os.time())
 
     -- more "retro-looking" font object we can use for any text
-    smallFont = love.graphics.newFont('fontana.ttf', 8)
+    smallFont = love.graphics.newFont('font.ttf', 8)
 
     -- set LÖVE2D's active font to the smallFont object
     love.graphics.setFont(smallFont)
