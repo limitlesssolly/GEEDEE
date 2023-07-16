@@ -2,8 +2,8 @@
     GD50 2018
     Pong Remake
 
-    pong-9
-    "The Serve Update"
+    pong-12
+    "The Resize Update"
 
     -- Main Program --
 
@@ -67,19 +67,24 @@ function love.load()
     -- use the current time, since that will vary on startup every time
     math.randomseed(os.time())
 
-    -- more "retro-looking" font object we can use for any text
+    -- initialize our nice-looking retro text fonts
     smallFont = love.graphics.newFont('font.ttf', 8)
-
-    -- larger font for drawing the score on the screen
+    largeFont = love.graphics.newFont('font.ttf', 16)
     scoreFont = love.graphics.newFont('font.ttf', 32)
-
-    -- set LÖVE2D's active font to the smallFont obect
     love.graphics.setFont(smallFont)
+
+    -- set up our sound effects; later, we can just index this table and
+    -- call each entry's `play` method
+    sounds = {
+        ['paddle_hit'] = love.audio.newSource('sounds/paddle_hit.wav', 'static'),
+        ['score'] = love.audio.newSource('sounds/score.wav', 'static'),
+        ['wall_hit'] = love.audio.newSource('sounds/wall_hit.wav', 'static')
+    }
 
     -- initialize window with virtual resolution
     push:setupScreen(VIRTUAL_WIDTH, VIRTUAL_HEIGHT, WINDOW_WIDTH, WINDOW_HEIGHT, {
         fullscreen = false,
-        resizable = false,
+        resizable = true,
         vsync = true
     })
 
@@ -98,6 +103,14 @@ function love.load()
     ball = Ball(VIRTUAL_WIDTH / 2 - 2, VIRTUAL_HEIGHT / 2 - 2, 4, 4)
 
     gameState = 'start'
+end
+
+--[[
+    Called by LÖVE whenever we resize the screen; here, we just want to pass in the
+    width and height to push so our virtual resolution can be resized as needed.
+]]
+function love.resize(w, h)
+    push:resize(w, h)
 end
 
 --[[
@@ -127,6 +140,8 @@ function love.update(dt)
             else
                 ball.dy = math.random(10, 150)
             end
+
+            sounds['paddle_hit']:play()
         end
         if ball:collides(player2) then
             ball.dx = -ball.dx * 1.03
@@ -138,35 +153,56 @@ function love.update(dt)
             else
                 ball.dy = math.random(10, 150)
             end
+
+            sounds['paddle_hit']:play()
         end
 
         -- detect upper and lower screen boundary collision and reverse if collided
         if ball.y <= 0 then
             ball.y = 0
             ball.dy = -ball.dy
+            sounds['wall_hit']:play()
         end
 
         -- -4 to account for the ball's size
         if ball.y >= VIRTUAL_HEIGHT - 4 then
             ball.y = VIRTUAL_HEIGHT - 4
             ball.dy = -ball.dy
+            sounds['wall_hit']:play()
         end
-    end
+        
+        -- if we reach the left or right edge of the screen, 
+        -- go back to start and update the score
+        if ball.x < 0 then
+            servingPlayer = 1
+            player2Score = player2Score + 1
+            sounds['score']:play()
 
-    -- if we reach the left or right edge of the screen, 
-    -- go back to start and update the score
-    if ball.x < 0 then
-        servingPlayer = 1
-        player2Score = player2Score + 1
-        ball:reset()
-        gameState = 'serve'
-    end
+            -- if we've reached a score of 10, the game is over; set the
+            -- state to done so we can show the victory message
+            if player2Score == 10 then
+                winningPlayer = 2
+                gameState = 'done'
+            else
+                gameState = 'serve'
+                -- places the ball in the middle of the screen, no velocity
+                ball:reset()
+            end
+        end
 
-    if ball.x > VIRTUAL_WIDTH then
-        servingPlayer = 2
-        player1Score = player1Score + 1
-        ball:reset()
-        gameState = 'serve'
+        if ball.x > VIRTUAL_WIDTH then
+            servingPlayer = 2
+            player1Score = player1Score + 1
+            sounds['score']:play()
+            
+            if player1Score == 10 then
+                winningPlayer = 1
+                gameState = 'done'
+            else
+                gameState = 'serve'
+                ball:reset()
+            end
+        end
     end
 
     -- player 1 movement
@@ -212,6 +248,23 @@ function love.keypressed(key)
             gameState = 'serve'
         elseif gameState == 'serve' then
             gameState = 'play'
+        elseif gameState == 'done' then
+            -- game is simply in a restart phase here, but will set the serving
+            -- player to the opponent of whomever won for fairness!
+            gameState = 'serve'
+
+            ball:reset()
+
+            -- reset scores to 0
+            player1Score = 0
+            player2Score = 0
+
+            -- decide serving player as the opposite of who won
+            if winningPlayer == 1 then
+                servingPlayer = 2
+            else
+                servingPlayer = 1
+            end
         end
     end
 end
@@ -243,6 +296,13 @@ function love.draw()
         love.graphics.printf('Press Enter to serve!', 0, 20, VIRTUAL_WIDTH, 'center')
     elseif gameState == 'play' then
         -- no UI messages to display in play
+    elseif gameState == 'done' then
+        -- UI messages
+        love.graphics.setFont(largeFont)
+        love.graphics.printf('Player ' .. tostring(winningPlayer) .. ' wins!',
+            0, 10, VIRTUAL_WIDTH, 'center')
+        love.graphics.setFont(smallFont)
+        love.graphics.printf('Press Enter to restart!', 0, 30, VIRTUAL_WIDTH, 'center')
     end
 
     player1:render()
@@ -260,7 +320,7 @@ end
 function displayFPS()
     -- simple FPS display across all states
     love.graphics.setFont(smallFont)
-    love.graphics.setColor(0, 255, 0, 255)
+    love.graphics.setColor(0, 255/255, 0, 255/255)
     love.graphics.print('FPS: ' .. tostring(love.timer.getFPS()), 10, 10)
 end
 
